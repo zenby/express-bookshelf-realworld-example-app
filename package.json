@@ -11,6 +11,7 @@
     "lint": "eslint .",
     "test": "bin/test.sh",
     "start": "bin/start.sh",
+    "migrate": "node_modules/.bin/knex migrate:latest --env server_env",
     "db:truncate": "bin/truncate.js",
     "docker:db:truncate": "docker-compose exec node npm run db:truncate",
     "docker:test": "docker-compose -f docker-compose.yml -f docker-compose.test.yml run node npm run test",
