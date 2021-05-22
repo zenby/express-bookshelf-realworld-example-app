@@ -1,0 +1,67 @@
+name: Setup review app
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: '14'
+      - run: npm install
+      - name: Build
+        run: npm run build
+        env:
+          REACT_APP_BACKEND_URL: ${{ secrets.API_BASE_URL }}/${{ github.head_ref }}/api
+      - name: Archive build
+        uses: actions/upload-artifact@v2
+        with:
+          name: build
+          path: build
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download a single artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: build
+          path: build
+      - name: Install SSH Key
+        uses: shimataro/ssh-key-action@v2
+        with:
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          known_hosts: ${{ secrets.SSH_KNOWN_HOSTS }}
+      - name: Adding Known Hosts
+        run: ssh-keyscan -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
+      - name: Copy files to the server
+        run: |
+          rsync -a --progress --human-readable --delete \
+          --exclude-from '.gitignore' \
+          --include-from .deploylist \
+          --exclude public \
+          . deploy@172.104.151.230:~/app/${{ github.head_ref }}/
+      - name: Trigger frontend review app
+        run: |
+          curl -XPOST -u "${{ secrets.GITHUB_USERNAME }}:${{ secrets.GITHUB_TOKEN }}" -H "Accept: application/vnd.github.everest-preview+json" -H "Content-Type: application/json" https://api.github.com/repos/vitallium/realworld-frontend/dispatches --data '{"event_type": "create_review_app", "ref_name": "${{ github.head_ref }}"}'
+      - name: Post review app URL
+        if: success()
+        uses: mshick/add-pr-comment@v1
+        with:
+          message: Created a review app at ${{ env.REVIEW_APP_URL }}
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+        env:
+          REVIEW_APP_URL: ${{ secrets.API_BASE_URL }}/${{ github.head_ref }}
+      - name: Update deployment status (failure)
+        if: failure()
+        uses: mshick/add-pr-comment@v1
+        with:
+          message: Failed to create a review app at $${{ env.REVIEW_APP_URL }}
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+        env:
+          REVIEW_APP_URL: ${{ secrets.API_BASE_URL }}/${{ github.head_ref }}
