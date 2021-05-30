@@ -36,6 +36,7 @@ deploy:
   stage: deploy
   variables:
     REPOSITORY_URL: 'git@gitlab.com:ci-cd-workshop1/backend.git'
+    DEPLOY_BRANCH: $CI_COMMIT_REF_NAME
     DEPLOY_DST: '/home/deploy/app/$CI_COMMIT_REF_SLUG'
     DB_NAME: $CI_COMMIT_REF_SLUG
   script:
