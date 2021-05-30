@@ -63,6 +63,7 @@ create_review_app:
   variables:
     REPOSITORY_URL: 'git@gitlab.com:ci-cd-workshop1/backend.git'
     DEPLOY_DST: '/home/deploy/app/$CI_COMMIT_REF_SLUG'
+    DEPLOY_BRANCH: $CI_COMMIT_REF_NAME
     DB_NAME: $CI_COMMIT_REF_SLUG
   script:
     - npm i -g pm2
