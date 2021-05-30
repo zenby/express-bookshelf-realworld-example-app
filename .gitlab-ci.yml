@@ -113,6 +113,7 @@ stop_review:
     - if: '$CI_MERGE_REQUEST_TITLE =~ /SKIP REVIEW/'
       when: never
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      when: manual
 
 reset_db:
   stage: review
@@ -124,9 +125,10 @@ reset_db:
   script:
     - |
       ssh $SSH_USER@$SSH_HOST <<EOF
-        cd $DEPLOY_DST/current/bin/create-db-copy "$DB_PASSWORD" "$DB_NAME"
+        ./$DEPLOY_DST/current/bin/create-db-copy "$DB_PASSWORD" "$DB_NAME"
       EOF
   rules:
     - if: '$CI_MERGE_REQUEST_TITLE =~ /SKIP REVIEW/'
       when: never
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      when: manual
