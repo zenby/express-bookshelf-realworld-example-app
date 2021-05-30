@@ -1,6 +1,7 @@
 stages:
   - test
   - deploy
+  - review
 
 default:
   image: node:14.17.0-alpine
@@ -41,7 +42,7 @@ deploy:
     - npm i -g pm2
     - ssh -q $SSH_USER@$SSH_HOST [[ ! -d "$DEPLOY_DST" ]] && pm2 deploy ecosystem.config.js production setup
     - |
-      ssh -q $SSH_USER@$SSH_HOST <<
+      ssh -q $SSH_USER@$SSH_HOST <<EOF
         echo "DB_NAME=$DB_NAME" > $DEPLOY_DST/.env
         echo "DB_USER=$DB_USER" >> $DEPLOY_DST/.env
         echo "DB_PASSWORD=$DB_PASSWORD" >> $DEPLOY_DST/.env
@@ -53,3 +54,50 @@ deploy:
     url: http://$CI_COMMIT_REF_SLUG.$APP_HOST/
   rules:
     - if: $CI_COMMIT_BRANCH == 'main'
+
+create_review_app:
+  extends:
+    - .setup_ssh
+  stage: review
+  variables:
+    REPOSITORY_URL: 'git@gitlab.com:ci-cd-workshop1/backend.git'
+    DEPLOY_DST: '/home/deploy/app/$CI_COMMIT_REF_SLUG'
+    DB_NAME: $CI_COMMIT_REF_SLUG
+  script:
+    - npm i -g pm2
+    - ssh -q $SSH_USER@$SSH_HOST [[ ! -d "$DEPLOY_DST" ]] && pm2 deploy ecosystem.config.js production setup
+    - |
+      ssh -q $SSH_USER@$SSH_HOST <<EOF
+        echo "DB_NAME=$DB_NAME" > $DEPLOY_DST/.env
+        echo "DB_USER=$DB_USER" >> $DEPLOY_DST/.env
+        echo "DB_PASSWORD=$DB_PASSWORD" >> $DEPLOY_DST/.env
+        echo "SECRET=$SECRET" >> $DEPLOY_DST/.env
+      EOF
+    - pm2 deploy ecosystem.config.js production --update-env
+    - ssh -q $SSH_USER@$SSH_HOST "$DEPLOY_DST/current/bin/create-db-copy $DB_PASSWORD $DB_NAME"
+    - ssh -q $SSH_USER@$SSH_HOST "cd $DEPLOY_DST && env DB_NAME=$DB_NAME pm2 start ecosystem.config.js --env production --update-env"
+  environment:
+    name: review/$CI_COMMIT_REF_NAME
+    url: http://$CI_COMMIT_REF_SLUG.$APP_HOST/
+    on_stop: stop_review
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+
+stop_review:
+  stage: review
+  extends:
+    - .setup_ssh
+  environment:
+    name: review/$CI_COMMIT_REF_NAME
+    action: stop
+  variables:
+    DEPLOY_DST: '/home/deploy/app/$CI_COMMIT_REF_SLUG'
+  script:
+    - |
+      ssh $SSH_USER@$SSH_HOST <<EOF
+        cd $DEPLOY_DST/current
+        pm2 delete ecosystem.config.js
+      EOF
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      when: manual
