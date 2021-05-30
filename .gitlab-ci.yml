@@ -39,7 +39,7 @@ deploy:
     DB_NAME: $CI_COMMIT_REF_SLUG
   script:
     - npm i -g pm2
-    - ssh -q $SSH_USER@$SSH_HOST [[ -d "$DEPLOY_DST" ]] && pm2 deploy ecosystem.config.js production setup
+    - ssh -q $SSH_USER@$SSH_HOST [[ ! -d "$DEPLOY_DST" ]] && pm2 deploy ecosystem.config.js production setup
     - |
       ssh -q $SSH_USER@$SSH_HOST <<
         echo "DB_NAME=$DB_NAME" > $DEPLOY_DST/.env
