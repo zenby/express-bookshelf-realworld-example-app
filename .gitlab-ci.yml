@@ -65,6 +65,9 @@ create_review_app:
     DEPLOY_DST: '/home/deploy/app/$CI_COMMIT_REF_SLUG'
     DEPLOY_BRANCH: $CI_COMMIT_REF_NAME
     DB_NAME: $CI_COMMIT_REF_SLUG
+    BRANCH_EXISTS_URL: 'https://gitlab.com/api/v4/projects/$FRONTEND_PROJECT_ID/repository/branches/$CI_COMMIT_REF_NAME'
+    CREATE_BRANCH_URL: 'https://gitlab.com/api/v4/projects/$FRONTEND_PROJECT_ID/repository/branches?branch=$CI_COMMIT_REF_NAME&ref=$CI_DEFAULT_BRANCH'
+    TRIGGER_PIPELINE_URL: 'https://gitlab.com/api/v4/projects/$FRONTEND_PROJECT_ID/pipeline?ref=$CI_COMMIT_REF_NAME'
   script:
     - npm i -g pm2
     - ssh -q $SSH_USER@$SSH_HOST [[ ! -d "$DEPLOY_DST" ]] && pm2 deploy ecosystem.config.js production setup
@@ -78,6 +81,10 @@ create_review_app:
     - pm2 deploy ecosystem.config.js production --update-env
     - ssh -q $SSH_USER@$SSH_HOST "$DEPLOY_DST/current/bin/create-db-copy $DB_PASSWORD $DB_NAME"
     - ssh -q $SSH_USER@$SSH_HOST "cd $DEPLOY_DST/current && env DB_NAME=$DB_NAME pm2 start ecosystem.config.js --env production --update-env"
+    - 'status_code=$(curl -I --header "PRIVATE-TOKEN: $PAT_TOKEN" --write-out "%{http_code}" --silent --output /dev/null "$BRANCH_EXISTS_URL")'
+    - '[[ "$status_code" -ne 204 ]] && status_code=$(curl -X POST --header "PRIVATE-TOKEN: $PAT_TOKEN" --write-out "%{http_code}" --silent --output /dev/null "$CREATE_BRANCH_URL")'
+    - '[[ "$status_code" -ne 400 ]] && echo "Branch already exists" && exit 0'
+    - 'curl -X POST --header "PRIVATE-TOKEN: $PAT_TOKEN" --write-out "%{http_code}" --silent --output /dev/null "$TRIGGER_PIPELINE_URL"'
   environment:
     name: review/$CI_COMMIT_REF_NAME
     url: http://$CI_COMMIT_REF_SLUG.$APP_HOST/
