@@ -103,3 +103,19 @@ stop_review:
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       when: manual
+
+reset_db:
+  stage: review
+  extends:
+    - .setup_ssh
+  variables:
+    DEPLOY_DST: '/home/deploy/app/$CI_COMMIT_REF_SLUG'
+    DB_NAME: $CI_COMMIT_REF_SLUG
+  script:
+    - |
+      ssh $SSH_USER@$SSH_HOST <<EOF
+        cd $DEPLOY_DST/current/bin/create-db-copy "$DB_PASSWORD" "$DB_NAME"
+      EOF
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      when: manual
