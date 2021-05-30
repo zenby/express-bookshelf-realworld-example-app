@@ -83,6 +83,8 @@ create_review_app:
     url: http://$CI_COMMIT_REF_SLUG.$APP_HOST/
     on_stop: stop_review
   rules:
+    - if: '$CI_MERGE_REQUEST_TITLE =~ /SKIP REVIEW/'
+      when: never
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
 
 stop_review:
@@ -101,8 +103,9 @@ stop_review:
         pm2 delete ecosystem.config.js
       EOF
   rules:
+    - if: '$CI_MERGE_REQUEST_TITLE =~ /SKIP REVIEW/'
+      when: never
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-      when: manual
 
 reset_db:
   stage: review
@@ -117,5 +120,6 @@ reset_db:
         cd $DEPLOY_DST/current/bin/create-db-copy "$DB_PASSWORD" "$DB_NAME"
       EOF
   rules:
+    - if: '$CI_MERGE_REQUEST_TITLE =~ /SKIP REVIEW/'
+      when: never
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-      when: manual
