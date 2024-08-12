@@ -1,0 +1,39 @@
+name: eslint
+
+on: [push]
+  # push: []
+  #   branches: [main]
+  # pull_request:
+  #   branches: [main]
+
+jobs:
+  eslint: 
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Install NVM
+      # команда для установки NVM из официального README.md NVM
+        run: curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.38.0/install.sh | bash
+
+
+      - name: Install node.js
+        # Мы ставим нужную версию в переменную окружения,
+        # которую NVM будет использовать
+        env:
+          NODE_VERSION: 14.17.0
+        # запускаем NVM для установки Node.js
+        run: nvm install
+      # - name: Use Node.js
+      #   uses: actions/setup-node@v2
+      #   with:
+      #     node-version: '14'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Lint source code with ESLint
+        run: npm run lint
+ 
+ 
