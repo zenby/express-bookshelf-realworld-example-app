@@ -1,0 +1,62 @@
+name: eslint
+
+on: [push]
+  # push: []
+  #   branches: [main]
+  # pull_request:
+  #   branches: [main]
+
+jobs:
+  eslint: 
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Cache node modules
+        uses: actions/cache@v2
+        env: 
+          cache-name: npm-${{ hashFiles('**/package-lock.json') }}
+        with:
+          path: ~/.npm
+          key: ${{ env.cache-name}}
+          restore-keys: |
+            ${{ env.cache-name }}
+
+      - name: Use Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '14'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Lint source code with ESLint
+        run: npm run lint
+
+  prettier: 
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Cache node modules
+        uses: actions/cache@v2
+        env: 
+          cache-name: npm-${{ hashFiles('**/package-lock.json') }}
+        with:
+          path: ~/.npm
+          key: ${{ env.cache-name}}
+          restore-keys: |
+            ${{ env.cache-name }}
+
+      - name: Use Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '14'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Lint source code with ESLint
+        run: npm run check:format
+ 
+ 
