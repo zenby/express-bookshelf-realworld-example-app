@@ -23,27 +23,28 @@ jobs:
           chmod 400 ~/.ssh/key.pem
           chmod 600 ~/.ssh/key.pem
           # Добавляем отпечаток сервера
-          echo "$SSH_KNOWN_HOSTS" >> ~/.ssh/known_hosts
+          # echo "$SSH_KNOWN_HOSTS" >> ~/.ssh/known_hosts
+          echo "$TEST"
         env:
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
           SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
-      - name: Check connection
-        run: |
-          ssh -i ~/.ssh/key.pem deploy@ec2-3-72-14-96.eu-central-1.compute.amazonaws.com
+          TEST: 'SLDFJD'
 
       - name: Copy files to the server
         # заливаем файлы при помощи rsync
         run: |
-          rsync -a --progress --human-readable --delete \
+          rsync -a "ssh -i $SSH_PRIVATE_KEY" --progress --human-readable --delete --exclude-from '.gitignore' --exclude .gitignore --exclude .git --exclude public . deploy@ec2-3-72-14-96.eu-central-1.compute.amazonaws.com:~/realworld/
           # исключить все, что есть в .gitignore
-          --exclude-from '.gitignore' \
+          #--exclude-from '.gitignore' \
           # не загружаем .gitignore
-          --exclude .gitignore \
+          #--exclude .gitignore \
           # не загружаем .git
-          --exclude .git \
+          #--exclude .git \
           # Не удаляем директорию с нашим фронтендом
-          --exclude public \
-          . deploy@ec2-3-72-14-96.eu-central-1.compute.amazonaws.com:~/realworld/
+          #--exclude public \
+          #. deploy@ec2-3-72-14-96.eu-central-1.compute.amazonaws.com:~/realworld/
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
       # job для перезапуска приложения при помощи pm2
       - name: Restart the application
         run: |
